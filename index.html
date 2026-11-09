@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="AgroPulse 360: calculadoras agronómicas, gestión de lotes y bitácora para productores, empresas y asesores.">
+<meta name="author" content="Gonzalo Vanzini">
+<meta name="theme-color" content="#020617">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>AgroPulse 360 — Plataforma Tecnológica Agropecuaria</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+<script>
+// Tema aplicado antes de pintar (evita el parpadeo)
+try{var t=localStorage.getItem('theme');if(t!=='light')document.documentElement.classList.add('dark');}catch(e){}
+</script>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{colors:{agro:{50:'#f0fdf4',100:'#dcfce7',200:'#bbf7d0',500:'#22c55e',600:'#16a34a',700:'#15803d',800:'#166534',900:'#14532d',950:'#052e16'}}}}}
+</script>
+<script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<style type="text/tailwindcss">
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.card{@apply bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800}
+.ico{@apply p-3 bg-agro-100 dark:bg-agro-950 text-agro-600 rounded-2xl}
+.lbl{@apply block text-xs font-semibold text-slate-600 dark:text-slate-400}
+.inp{@apply mt-1.5 w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-agro-500 focus:outline-none}
+.btn{@apply bg-agro-600 hover:bg-agro-700 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-md shadow-agro-600/20 text-sm}
+.btn2{@apply bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold py-3 rounded-xl transition-all text-sm}
+.res{@apply bg-agro-50/60 dark:bg-slate-950 p-4 rounded-2xl border border-agro-100 dark:border-slate-800}
+.rl{@apply text-xs text-slate-500 block}
+.rv{@apply text-2xl font-extrabold text-agro-600}
+.ru{@apply text-xs text-slate-500}
+.row2{@apply grid grid-cols-1 sm:grid-cols-2 gap-4}
+.tab{@apply flex items-center space-x-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800}
+.tab[aria-selected="true"]{@apply bg-agro-600 text-white shadow-md shadow-agro-600/25 hover:bg-agro-600 dark:text-white dark:hover:bg-agro-600}
+.chip{@apply text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg}
+.modal{@apply fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4}
+.modal>div{@apply bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 max-h-[90vh] overflow-y-auto}
+.metric{@apply bg-slate-50 dark:bg-slate-950 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center space-x-4}
+.item{@apply bg-slate-50 dark:bg-slate-950 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3}
+</style>
+<style>
+.modal.hidden,.lbl.hidden,.tab.hidden{display:none!important}
+html.dark body{background-image:linear-gradient(rgba(34,211,238,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.05) 1px,transparent 1px);background-size:40px 40px}
+html.dark .card,html.dark .item,html.dark .metric{border-color:rgba(34,211,238,.25);box-shadow:0 0 24px rgba(34,211,238,.07)}
+html.dark .rv{color:#4ade80;text-shadow:0 0 10px rgba(74,222,128,.6)}
+html.dark header{border-bottom-color:rgba(34,211,238,.35)}
+.hero>*:not(svg){position:relative;z-index:1}
+.hero h2{text-shadow:0 0 14px rgba(74,222,128,.55)}
+</style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300">
+
+<header class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="bg-gradient-to-tr from-agro-700 to-agro-500 p-2.5 rounded-2xl text-white shadow-lg shadow-agro-600/20"><i data-lucide="sprout" class="w-6 h-6"></i></div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-agro-700 to-emerald-500 bg-clip-text text-transparent">AgroPulse 360</h1>
+          <span class="text-[10px] font-bold uppercase tracking-wider bg-agro-100 dark:bg-agro-950 text-agro-700 dark:text-agro-300 px-2.5 py-0.5 rounded-full border border-agro-200 dark:border-agro-800">Argentina</span>
+        </div>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Plataforma Tecnológica Agropecuaria</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-3 sm:space-x-4">
+      <div class="hidden lg:flex items-center space-x-2 text-xs bg-agro-50 dark:bg-agro-950/80 text-agro-800 dark:text-agro-300 px-3.5 py-2 rounded-xl border border-agro-200 dark:border-agro-800 font-medium">
+        <i data-lucide="award" class="w-4 h-4 text-agro-600"></i>
+        <span>Fundador, Creador y CEO: <strong>Gonzalo Vanzini</strong></span>
+      </div>
+      <div id="auth-area" class="flex items-center space-x-2"></div>
+      <button id="theme-toggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300 shadow-sm" aria-label="Cambiar modo claro/oscuro">
+        <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+        <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<nav class="bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 sticky top-20 z-40">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto">
+    <div class="flex space-x-2 sm:space-x-4 py-3 min-w-max" role="tablist">
+      <button class="tab" role="tab" id="btn-tab-calculators" aria-selected="true" onclick="switchTab('calculators')"><i data-lucide="calculator" class="w-4 h-4"></i><span>Herramientas y Calculadoras</span></button>
+      <button class="tab" role="tab" id="btn-tab-fields" aria-selected="false" onclick="switchTab('fields')"><i data-lucide="map-pin" class="w-4 h-4"></i><span>Gestión de Lotes por Provincia</span></button>
+      <button class="tab" role="tab" id="btn-tab-notes" aria-selected="false" onclick="switchTab('notes')"><i data-lucide="clipboard-list" class="w-4 h-4"></i><span>Bitácora y Monitoreo</span></button>
+      <button class="tab" role="tab" id="btn-tab-tools" aria-selected="false" onclick="switchTab('tools')"><i data-lucide="wrench" class="w-4 h-4"></i><span>Más herramientas</span></button>
+      <button class="tab" role="tab" id="btn-tab-camp" aria-selected="false" onclick="switchTab('camp')"><i data-lucide="activity" class="w-4 h-4"></i><span>Campaña</span></button>
+      <button class="tab hidden" role="tab" id="btn-tab-admin" aria-selected="false" onclick="switchTab('admin')"><i data-lucide="shield-check" class="w-4 h-4"></i><span>Panel Admin</span></button>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full space-y-8">
+
+<!-- TAB 1: CALCULADORAS -->
+<section id="tab-calculators" role="tabpanel" class="tab-content space-y-6">
+  <div class="hero relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-cyan-400/30">
+    <svg class="absolute inset-0 w-full h-full" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#020617"/><stop offset=".62" stop-color="#052e16"/><stop offset="1" stop-color="#14532d"/></linearGradient>
+        <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#22d3ee" stop-opacity="0"/><stop offset=".5" stop-color="#4ade80"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></linearGradient>
+      </defs>
+      <rect width="800" height="300" fill="url(#sky)"/>
+      <g fill="#fff" opacity=".7"><circle cx="60" cy="40" r="1.3"/><circle cx="150" cy="95" r="1"/><circle cx="260" cy="30" r="1.4"/><circle cx="380" cy="80" r="1"/><circle cx="470" cy="35" r="1.2"/><circle cx="560" cy="110" r="1"/><circle cx="740" cy="140" r="1.3"/></g>
+      <circle cx="660" cy="70" r="48" fill="none" stroke="#22d3ee" stroke-opacity=".4" stroke-dasharray="3 6"/>
+      <g class="animate-pulse" transform="translate(704,52) rotate(-25)"><rect x="-6" y="-4" width="12" height="8" fill="#22d3ee"/><rect x="-24" y="-3" width="15" height="6" fill="#4ade80"/><rect x="9" y="-3" width="15" height="6" fill="#4ade80"/></g>
+      <g stroke="#4ade80" stroke-opacity=".4"><line x1="400" y1="190" x2="-200" y2="300"/><line x1="400" y1="190" x2="0" y2="300"/><line x1="400" y1="190" x2="200" y2="300"/><line x1="400" y1="190" x2="400" y2="300"/><line x1="400" y1="190" x2="600" y2="300"/><line x1="400" y1="190" x2="800" y2="300"/><line x1="400" y1="190" x2="1000" y2="300"/>
+        <line x1="0" y1="208" x2="800" y2="208"/><line x1="0" y1="230" x2="800" y2="230"/><line x1="0" y1="262" x2="800" y2="262"/></g>
+      <rect y="188" width="800" height="3" fill="url(#glow)"/>
+    </svg>
+    <div class="space-y-2">
+      <span class="bg-agro-700/80 text-agro-100 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">Tecnología Agronómica</span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Motores de Cálculo de Precisión</h2>
+      <p class="text-agro-100 text-sm max-w-2xl">Optimice insumos y estime el potencial de rinde para la región pampeana y extrapampeana. Resultados orientativos.</p>
+    </div>
+    <div class="flex items-center space-x-3 bg-agro-950/50 p-4 rounded-2xl border border-agro-700/40">
+      <i data-lucide="cpu" class="w-8 h-8 text-emerald-400"></i>
+      <div><span class="text-[10px] uppercase text-agro-300 block font-semibold">Motor Agrícola</span><span class="text-xs font-bold text-white">Versión 1.0</span></div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- 1. Siembra -->
+    <div class="card flex flex-col justify-between">
+      <div>
+        <div class="flex items-center space-x-3 mb-6"><div class="ico"><i data-lucide="layers" class="w-6 h-6"></i></div>
+          <div><h3 class="font-bold text-lg">Densidad de Siembra</h3><p class="text-xs text-slate-500 dark:text-slate-400">Convierte plantas objetivo/m² en kg de semilla por hectárea.</p></div></div>
+        <div class="space-y-4">
+          <div class="row2">
+            <label class="lbl">Plantas objetivo / m²<input class="inp" type="number" id="s-target" value="70" min="1" max="1000" oninput="calcSowing()"></label>
+            <label class="lbl">Poder germinativo (%)<input class="inp" type="number" id="s-germ" value="95" min="1" max="100" oninput="calcSowing()"></label>
+          </div>
+          <div class="row2">
+            <label class="lbl">Logro de implantación (%)<input class="inp" type="number" id="s-est" value="90" min="1" max="100" oninput="calcSowing()"></label>
+            <label class="lbl">Peso de 1.000 granos (g)<input class="inp" type="number" id="s-peso" value="160" min="1" max="1000" oninput="calcSowing()"></label>
+          </div>
+        </div>
+      </div>
+      <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4">
+        <div class="res"><span class="rl">Semilla necesaria</span><span id="res-sowing-kg" class="rv">--</span> <span class="ru">kg/ha</span></div>
+        <div class="res"><span class="rl">Semillas a colocar</span><span id="res-sowing-m2" class="rv">--</span> <span class="ru">sem/m²</span></div>
+      </div>
+    </div>
+
+    <!-- 2. Fertilización -->
+    <div class="card flex flex-col justify-between">
+      <div>
+        <div class="flex items-center space-x-3 mb-6"><div class="ico"><i data-lucide="flask-conical" class="w-6 h-6"></i></div>
+          <div><h3 class="font-bold text-lg">Calculadora de Fertilización (N y P)</h3><p class="text-xs text-slate-500 dark:text-slate-400">Urea (46% N) y MAP (11-52-0). El N del MAP se descuenta de la urea.</p></div></div>
+        <div class="space-y-4">
+          <div class="row2">
+            <label class="lbl">N objetivo (kg/ha)<input class="inp" type="number" id="f-n-target" value="130" min="0" max="400" oninput="calcFert()"></label>
+            <label class="lbl">P en suelo (ppm)<input class="inp" type="number" id="f-p-soil" value="14" min="0" max="200" oninput="calcFert()"></label>
+          </div>
+          <div class="row2">
+            <label class="lbl">P objetivo (ppm)<input class="inp" type="number" id="f-p-target" value="30" min="0" max="200" oninput="calcFert()"></label>
+            <label class="lbl">Eficiencia de aplicación (%)<input class="inp" type="number" id="f-eff" value="75" min="10" max="100" oninput="calcFert()"></label>
+          </div>
+          <label class="lbl">Factor de corrección (kg P₂O₅/ha por ppm de P)<input class="inp" type="number" step="0.1" id="f-factor" value="2.3" min="0" max="20" oninput="calcFert()"></label>
+          <p class="text-xs text-amber-600 dark:text-amber-400">Factor de ejemplo, editable: valídelo con su asesor o laboratorio.</p>
+        </div>
+      </div>
+      <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="res"><span class="rl">Urea (46% N)</span><span id="res-urea" class="rv">--</span> <span class="ru">kg/ha</span></div>
+          <div class="res"><span class="rl">MAP (11-52-0)</span><span id="res-map" class="rv">--</span> <span class="ru">kg/ha</span></div>
+        </div>
+        <p id="res-fert-note" class="text-xs text-slate-500 mt-3"></p>
+      </div>
+    </div>
+
+    <!-- 3. Rinde -->
+    <div class="card flex flex-col justify-between">
+      <div>
+        <div class="flex items-center space-x-3 mb-6"><div class="ico"><i data-lucide="trending-up" class="w-6 h-6"></i></div>
+          <div><h3 class="font-bold text-lg">Estimador de Rinde (qq/ha y tn/ha)</h3><p class="text-xs text-slate-500 dark:text-slate-400">Valores de ejemplo por cultivo, editables.</p></div></div>
+        <div class="space-y-4">
+          <div class="row2">
+            <label class="lbl">Cultivo
+              <select class="inp" id="y-crop" onchange="updateYield()">
+                <option value="soja">Soja</option><option value="maiz">Maíz</option><option value="trigo">Trigo</option><option value="girasol">Girasol</option>
+              </select></label>
+            <label class="lbl"><span id="y-l-pl">Plantas / metro lineal</span><input class="inp" type="number" step="any" id="y-plants" value="14" min="0.1" max="2000" oninput="calcYield()"></label>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <label class="lbl" id="y-wrap-sp">Entre surcos (m)<input class="inp" type="number" step="any" id="y-spacing" value="0.52" min="0.1" max="2" oninput="calcYield()"></label>
+            <label class="lbl"><span id="y-l-gr">Granos / planta</span><input class="inp" type="number" step="any" id="y-grains" value="90" min="1" max="5000" oninput="calcYield()"></label>
+            <label class="lbl">Peso 1.000 granos (g)<input class="inp" type="number" step="any" id="y-peso" value="160" min="1" max="1000" oninput="calcYield()"></label>
+          </div>
+        </div>
+      </div>
+      <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4">
+        <div class="res"><span class="rl">Rendimiento</span><span id="res-yield-qq" class="rv">--</span> <span class="ru">qq/ha</span></div>
+        <div class="res"><span class="rl">Rendimiento</span><span id="res-yield-ton" class="rv">--</span> <span class="ru">tn/ha</span></div>
+      </div>
+    </div>
+
+    <!-- 4. Costos -->
+    <div class="card flex flex-col justify-between">
+      <div>
+        <div class="flex items-center space-x-3 mb-6"><div class="ico"><i data-lucide="dollar-sign" class="w-6 h-6"></i></div>
+          <div><h3 class="font-bold text-lg">Costos Operativos ($ARS/ha)</h3><p class="text-xs text-slate-500 dark:text-slate-400">Gasoil, amortización y mano de obra. Ingrese valores actuales.</p></div></div>
+        <div class="space-y-4">
+          <div class="row2">
+            <label class="lbl">Consumo gasoil (L/ha)<input class="inp" type="number" step="any" id="c-fuel" value="18" min="0" max="1000" oninput="calcCosts()"></label>
+            <label class="lbl">Precio gasoil ($ARS/L)<input class="inp" type="number" step="any" id="c-fuelfee" value="1150" min="0" max="1000000" oninput="calcCosts()"></label>
+          </div>
+          <div class="row2">
+            <label class="lbl">Desgaste / amortización ($ARS/ha)<input class="inp" type="number" step="any" id="c-wear" value="4500" min="0" max="100000000" oninput="calcCosts()"></label>
+            <label class="lbl">Mano de obra y logística ($ARS/ha)<input class="inp" type="number" step="any" id="c-labor" value="3800" min="0" max="100000000" oninput="calcCosts()"></label>
+          </div>
+        </div>
+      </div>
+      <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4">
+        <div class="res"><span class="rl">Costo operativo total</span><span id="res-cost-total" class="rv">--</span> <span class="ru">$ARS/ha</span></div>
+        <div class="res"><span class="rl">Gasto de combustible</span><span id="res-cost-fuel" class="rv">--</span> <span class="ru">$ARS/ha</span></div>
+      </div>
+    </div>
+    <!-- 5. Pulverización -->
+    <div class="card flex flex-col justify-between">
+      <div>
+        <div class="flex items-center space-x-3 mb-6"><div class="ico"><i data-lucide="spray-can" class="w-6 h-6"></i></div>
+          <div><h3 class="font-bold text-lg">Calculadora de Pulverización</h3><p class="text-xs text-slate-500 dark:text-slate-400">Cargas, producto por tanque y totales.</p></div></div>
+        <div class="space-y-4">
+          <div class="row2">
+            <label class="lbl">Caudal (L de caldo/ha)<input class="inp" type="number" step="any" id="p-flow" value="80" min="1" max="1000" oninput="calcSpray()"></label>
+            <label class="lbl">Capacidad del tanque (L)<input class="inp" type="number" step="any" id="p-tank" value="3000" min="10" max="100000" oninput="calcSpray()"></label>
+          </div>
+          <div class="row2">
+            <label class="lbl">Dosis de producto (L o kg/ha)<input class="inp" type="number" step="any" id="p-dose" value="2" min="0" max="100" oninput="calcSpray()"></label>
+            <label class="lbl">Superficie a tratar (ha)<input class="inp" type="number" step="any" id="p-ha" value="100" min="0.1" max="1000000" oninput="calcSpray()"></label>
+          </div>
+          <p class="text-xs text-amber-600 dark:text-amber-400">Respete siempre la etiqueta del producto y la receta fitosanitaria de un profesional habilitado.</p>
+        </div>
+      </div>
+      <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="res"><span class="rl">Hectáreas por tanque</span><span id="res-p-hat" class="rv">--</span> <span class="ru">ha</span></div>
+          <div class="res"><span class="rl">Producto por tanque</span><span id="res-p-prodt" class="rv">--</span> <span class="ru">L o kg</span></div>
+          <div class="res"><span class="rl">Tanques necesarios</span><span id="res-p-tanks" class="rv">--</span></div>
+          <div class="res"><span class="rl">Producto total</span><span id="res-p-prodtot" class="rv">--</span> <span class="ru">L o kg</span></div>
+        </div>
+        <p id="res-p-note" class="text-xs text-slate-500 mt-3"></p>
+      </div>
+    </div>
+
+    <!-- 6. Margen bruto -->
+    <div class="card flex flex-col justify-between">
+      <div>
+        <div class="flex items-center space-x-3 mb-6"><div class="ico"><i data-lucide="wallet" class="w-6 h-6"></i></div>
+          <div><h3 class="font-bold text-lg">Margen Bruto por Lote ($ARS)</h3><p class="text-xs text-slate-500 dark:text-slate-400">Valores de ejemplo: actualícelos con sus precios.</p></div></div>
+        <div class="space-y-4">
+          <label class="lbl">Lote (toma la superficie)<select class="inp" id="m-lote" onchange="pickLote()"><option value="">— Sin lote —</option></select></label>
+          <div class="row2">
+            <label class="lbl">Rinde (tn/ha)<input class="inp" type="number" step="any" id="m-yield" value="3.5" min="0" max="100" oninput="calcMargin()"></label>
+            <label class="lbl">Precio ($/tn)<input class="inp" type="number" step="any" id="m-price" value="300000" min="0" max="100000000" oninput="calcMargin()"></label>
+          </div>
+          <div class="row2">
+            <label class="lbl">Costos directos ($/ha)<input class="inp" type="number" step="any" id="m-cost" value="450000" min="0" max="1000000000" oninput="calcMargin()"></label>
+            <label class="lbl">Alquiler ($/ha)<input class="inp" type="number" step="any" id="m-rent" value="0" min="0" max="1000000000" oninput="calcMargin()"></label>
+          </div>
+          <div class="row2">
+            <label class="lbl">Cosecha y comercialización (% del ingreso)<input class="inp" type="number" step="any" id="m-comm" value="8" min="0" max="100" oninput="calcMargin()"></label>
+            <label class="lbl">Superficie (ha)<input class="inp" type="number" step="any" id="m-ha" value="100" min="0" max="1000000" oninput="calcMargin()"></label>
+          </div>
+          <button type="button" class="underline text-xs" onclick="useYield()">Usar el rinde del estimador</button>
+        </div>
+      </div>
+      <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4">
+        <div class="res"><span class="rl">Ingreso bruto</span><span id="res-m-ing" class="rv">--</span> <span class="ru">$/ha</span></div>
+        <div class="res"><span class="rl">Margen bruto</span><span id="res-m-mb" class="rv">--</span> <span class="ru">$/ha</span></div>
+        <div class="res"><span class="rl">Margen total</span><span id="res-m-tot" class="rv">--</span> <span class="ru">$</span></div>
+        <div class="res"><span class="rl">Rentabilidad s/costos</span><span id="res-m-rent" class="rv">--</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TAB 2: LOTES -->
+<section id="tab-fields" role="tabpanel" class="tab-content hidden space-y-6">
+  <div class="card">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div><h2 class="text-2xl font-extrabold">Gestor de Lotes por Provincia</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Administre superficie, ubicación y cultivo de sus campos en Argentina.</p></div>
+      <button onclick="requireAuth(()=>openM('modal-field'))" class="btn flex items-center justify-center space-x-2"><i data-lucide="plus-circle" class="w-5 h-5"></i><span>Registrar nuevo lote</span></button>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div class="metric"><div class="ico"><i data-lucide="map-pin" class="w-6 h-6"></i></div><div><span class="text-xs text-slate-500 block">Lotes registrados</span><span id="metric-lotes" class="text-2xl font-extrabold">0</span></div></div>
+      <div class="metric"><div class="ico"><i data-lucide="maximize" class="w-6 h-6"></i></div><div><span class="text-xs text-slate-500 block">Superficie total</span><span id="metric-ha" class="text-2xl font-extrabold text-agro-600">0 ha</span></div></div>
+      <div class="metric"><div class="ico"><i data-lucide="check-circle-2" class="w-6 h-6"></i></div><div><span class="text-xs text-slate-500 block">Provincias activas</span><span id="metric-provinces" class="text-2xl font-extrabold">0</span></div></div>
+    </div>
+    <div class="flex flex-wrap gap-3 mb-6"><button class="btn2 px-4" onclick="requireAuth(exportCsv)">Exportar lotes (CSV)</button><button class="btn2 px-4" onclick="requireAuth(exportPdf)">Informe PDF</button><button class="btn2 px-4" onclick="requireAuth(shareLotes)">Compartir por WhatsApp</button></div>
+    <div id="fields-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </div>
+</section>
+
+<!-- TAB 3: BITÁCORA -->
+<section id="tab-notes" role="tabpanel" class="tab-content hidden space-y-6">
+  <div class="card">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div><h2 class="text-2xl font-extrabold">Bitácora y Monitoreo Fitosanitario</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Eventos climáticos, plagas, malezas y avisos de aplicación.</p></div>
+      <button onclick="requireAuth(()=>openM('modal-note'))" class="btn flex items-center justify-center space-x-2"><i data-lucide="file-plus" class="w-5 h-5"></i><span>Nueva nota</span></button>
+    </div>
+    <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+  </div>
+</section>
+<!-- TAB: MÁS HERRAMIENTAS -->
+<section id="tab-tools" role="tabpanel" class="tab-content hidden space-y-6"><div id="tools-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div></section>
+<!-- TAB: CAMPAÑA -->
+<section id="tab-camp" role="tabpanel" class="tab-content hidden space-y-6">
+  <div id="camp-charts" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+  <div id="camp-lists" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+</section>
+<!-- TAB 4: ADMIN -->
+<section id="tab-admin" role="tabpanel" class="tab-content hidden space-y-6">
+  <div class="card">
+    <h2 class="text-2xl font-extrabold">Panel de Administración</h2>
+    <p class="text-xs mt-3 mb-6 p-3 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30">Modo demo: solo muestra las cuentas creadas en este navegador. Para administrar usuarios reales se necesita un servidor (por ejemplo Firebase o Supabase).</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="metric"><div><span class="text-xs text-slate-500 block">Usuarios</span><span id="adm-users" class="text-2xl font-extrabold">0</span></div></div>
+      <div class="metric"><div><span class="text-xs text-slate-500 block">Administradores</span><span id="adm-admins" class="text-2xl font-extrabold">0</span></div></div>
+      <div class="metric"><div><span class="text-xs text-slate-500 block">Lotes</span><span id="adm-lotes" class="text-2xl font-extrabold">0</span></div></div>
+      <div class="metric"><div><span class="text-xs text-slate-500 block">Superficie</span><span id="adm-ha" class="text-2xl font-extrabold text-agro-600">0 ha</span></div></div>
+    </div>
+    <div class="overflow-x-auto"><table class="w-full text-sm text-left">
+      <thead class="text-xs uppercase text-slate-500"><tr><th class="pb-2 pr-4">Nombre</th><th class="pb-2 pr-4">Email</th><th class="pb-2 pr-4">Rol</th><th class="pb-2 pr-4">Alta</th><th class="pb-2">Acciones</th></tr></thead>
+      <tbody id="adm-body"></tbody></table></div>
+  </div>
+</section>
+</main>
+
+<footer class="border-t border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-xs text-slate-500 dark:text-slate-400 space-y-2">
+    <p>© 2026 Gonzalo Vanzini. Todos los derechos reservados. AgroPulse 360 y su código, diseño y contenidos son de su propiedad.</p>
+    <p>Los resultados son estimaciones orientativas y no reemplazan el asesoramiento de un profesional matriculado.
+      <button class="underline hover:text-agro-600" onclick="openM('modal-legal')">Aviso legal y privacidad</button></p>
+  </div>
+</footer>
+
+<!-- Modales -->
+<div id="modal-auth" class="modal hidden" role="dialog" aria-modal="true" aria-label="Cuenta"><div>
+  <div class="flex items-center justify-between"><h3 id="auth-title" class="font-extrabold text-xl">Crear cuenta</h3>
+    <button onclick="closeM('modal-auth')" aria-label="Cerrar" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i data-lucide="x" class="w-6 h-6"></i></button></div>
+  <form id="form-auth" onsubmit="submitAuth(event)" class="space-y-4">
+    <label id="au-name-w" class="lbl">Nombre<input class="inp" type="text" id="au-name" maxlength="60" autocomplete="name"></label>
+    <label class="lbl">Email<input class="inp" type="email" id="au-email" required maxlength="120" autocomplete="email"></label>
+    <label class="lbl">Contraseña (mínimo 8 caracteres)<input class="inp" type="password" id="au-pass" required minlength="8" maxlength="100"></label>
+    <label id="au-consent-w" class="flex items-start space-x-2 text-xs text-slate-600 dark:text-slate-400"><input type="checkbox" id="au-consent" class="mt-0.5"><span>Acepto el <button type="button" class="underline" onclick="openM('modal-legal')">aviso legal y privacidad</button>.</span></label>
+    <p id="au-msg" class="text-xs text-rose-500" role="alert"></p>
+    <button type="submit" id="au-submit" class="btn w-full">Crear cuenta</button>
+    <p class="text-xs text-center"><button type="button" id="au-switch" class="underline" onclick="setAuthMode(authMode==='register'?'login':'register')"></button></p>
+  </form>
+  <p class="text-[11px] text-slate-500">Modo demo: la cuenta se guarda solo en este navegador.</p>
+</div></div>
+<div id="modal-field" class="modal hidden" role="dialog" aria-modal="true" aria-label="Registrar lote"><div>
+  <div class="flex items-center justify-between"><h3 class="font-extrabold text-xl">Registrar nuevo lote</h3>
+    <button onclick="closeM('modal-field')" aria-label="Cerrar" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i data-lucide="x" class="w-6 h-6"></i></button></div>
+  <form id="form-field" onsubmit="saveField(event)" class="space-y-4">
+    <label class="lbl">Nombre del lote / establecimiento<input class="inp" type="text" id="mf-name" required maxlength="80" placeholder="Ej: Lote 4 - La Vanguardia"></label>
+    <div class="grid grid-cols-2 gap-4">
+      <label class="lbl">Provincia<select class="inp" id="mf-prov"></select></label>
+      <label class="lbl">Superficie (ha)<input class="inp" type="number" step="any" id="mf-ha" required min="0.1" max="1000000" placeholder="120"></label>
+    </div>
+    <label class="lbl">Cultivo actual<input class="inp" type="text" id="mf-crop" required maxlength="60" placeholder="Ej: Soja de segunda"></label>
+    <div class="flex space-x-3 pt-2"><button type="button" onclick="closeM('modal-field')" class="btn2 w-1/2">Cancelar</button><button type="submit" class="btn w-1/2">Guardar lote</button></div>
+  </form>
+</div></div>
+
+<div id="modal-note" class="modal hidden" role="dialog" aria-modal="true" aria-label="Nueva nota"><div>
+  <div class="flex items-center justify-between"><h3 class="font-extrabold text-xl">Nueva nota de bitácora</h3>
+    <button onclick="closeM('modal-note')" aria-label="Cerrar" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i data-lucide="x" class="w-6 h-6"></i></button></div>
+  <form id="form-note" onsubmit="saveNote(event)" class="space-y-4">
+    <label class="lbl">Título del evento / monitoreo<input class="inp" type="text" id="mn-title" required maxlength="100" placeholder="Ej: Presencia de orugas en Lote 2"></label>
+    <label class="lbl">Categoría<select class="inp" id="mn-cat"><option>Plagas / Sanidad</option><option>Clima / Lluvias</option><option>Fertilización / Aplicación</option><option>General</option></select></label>
+    <label class="lbl">Detalles y observaciones<textarea class="inp" id="mn-desc" rows="3" required maxlength="1000" placeholder="Describa el estado del cultivo..."></textarea></label>
+    <div class="flex space-x-3 pt-2"><button type="button" onclick="closeM('modal-note')" class="btn2 w-1/2">Cancelar</button><button type="submit" class="btn w-1/2">Guardar nota</button></div>
+  </form>
+</div></div>
+
+<div id="modal-legal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Aviso legal"><div>
+  <div class="flex items-center justify-between"><h3 class="font-extrabold text-xl">Aviso legal y privacidad</h3>
+    <button onclick="closeM('modal-legal')" aria-label="Cerrar" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i data-lucide="x" class="w-6 h-6"></i></button></div>
+  <div class="text-sm text-slate-600 dark:text-slate-300 space-y-3">
+    <p><strong>Titularidad.</strong> © 2026 Gonzalo Vanzini. Todos los derechos reservados. Queda prohibida la reproducción o distribución sin autorización escrita.</p>
+    <p><strong>Resultados orientativos.</strong> Los cálculos son estimaciones basadas en los datos ingresados y en supuestos editables. No constituyen asesoramiento profesional; las decisiones productivas deben validarse con un ingeniero agrónomo u otro profesional habilitado. No se garantiza ningún resultado.</p>
+    <p><strong>Datos.</strong> Las cuentas, lotes y notas se guardan únicamente en este dispositivo (almacenamiento local del navegador). La aplicación no los envía a ningún servidor propio. Esto cambiará cuando se habilite el registro en línea; se lo informaremos antes. Si borra los datos del navegador, se pierden.</p>
+    <p><strong>Términos de uso y Política de privacidad completos:</strong> próximamente.</p>
+  </div>
+  <button onclick="closeM('modal-legal')" class="btn w-full">Cerrar</button>
+</div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return Array.isArray(v) ? v : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const icons = () => { if (window.lucide) lucide.createIcons(); };
+
+// ---------- Tema ----------
+$('theme-toggle').addEventListener('click', () => {
+  const dark = document.documentElement.classList.toggle('dark');
+  try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+});
+
+// ---------- Pestañas y modales ----------
+function switchTab(id) {
+  if (id === 'admin' && !isAdmin()) return;
+  if (id === 'admin') renderAdmin();
+  if (id === 'camp') renderCamp();
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(el => el.setAttribute('aria-selected', 'false'));
+  $('tab-' + id).classList.remove('hidden');
+  $('btn-tab-' + id).setAttribute('aria-selected', 'true');
+}
+function openM(id) { $(id).classList.remove('hidden'); const f = $(id).querySelector('input,select,textarea,button'); if (f) f.focus(); }
+function closeM(id) { $(id).classList.add('hidden'); const f = $(id).querySelector('form'); if (f) f.reset(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal:not(.hidden)').forEach(m => closeM(m.id)); });
+document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeM(m.id); }));
+
+// ---------- Utilidades de cálculo ----------
+// Devuelve el número si está dentro de [min,max]; si no, marca el campo en rojo y devuelve null.
+function num(id, min, max) {
+  const el = $(id), v = parseFloat(el.value);
+  const ok = Number.isFinite(v) && v >= min && v <= max;
+  el.classList.toggle('border-rose-500', !ok);
+  el.title = ok ? '' : `Ingrese un valor entre ${min} y ${max}`;
+  return ok ? v : null;
+}
+function out(ids, vals) { ids.forEach((id, i) => $(id).textContent = vals ? vals[i] : '--'); }
+const fmt = (n, d = 1) => n.toLocaleString('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+// 1. Siembra: kg/ha = (plantas/m² ÷ (germinación × implantación)) × 10.000 m² × peso de 1 grano (g) ÷ 1.000
+function calcSowing() {
+  const v = [num('s-target', 1, 1000), num('s-germ', 1, 100), num('s-est', 1, 100), num('s-peso', 1, 1000)];
+  const ids = ['res-sowing-kg', 'res-sowing-m2'];
+  if (v.includes(null)) return out(ids, null);
+  const [t, g, e, p] = v;
+  const m2 = t / ((g / 100) * (e / 100));
+  out(ids, [fmt(m2 * 10000 * (p / 1000) / 1000), fmt(m2)]);
+}
+
+// 2. Fertilización: MAP = kg P2O5 ÷ 0,52; el N del MAP (11%) se descuenta de la urea.
+function calcFert() {
+  const v = [num('f-n-target', 0, 400), num('f-p-soil', 0, 200), num('f-p-target', 0, 200), num('f-eff', 10, 100), num('f-factor', 0, 20)];
+  const ids = ['res-urea', 'res-map'];
+  if (v.includes(null)) { $('res-fert-note').textContent = ''; return out(ids, null); }
+  const [n, ps, pt, eff, factor] = v;
+  const p2o5 = Math.max(0, pt - ps) * factor * 100 / eff;
+  const map = p2o5 / 0.52;
+  const nMap = map * 0.11;
+  const urea = Math.max(0, n * 100 / eff - nMap) / 0.46;
+  out(ids, [fmt(urea), fmt(map)]);
+  $('res-fert-note').textContent = `El MAP aporta ${fmt(nMap)} kg N/ha, ya descontados de la urea.`;
+}
+
+// 3. Rinde: kg/ha = plantas(o espigas)/m² × granos × peso de 1 grano (g) × 10
+const CROPS = {
+  soja:    { pl: 'Plantas / metro lineal', sp: true,  gr: 'Granos / planta',   v: [14, 0.52, 90, 160] },
+  maiz:    { pl: 'Plantas / metro lineal', sp: true,  gr: 'Granos / espiga',   v: [4.5, 0.52, 500, 300] },
+  trigo:   { pl: 'Espigas / m²',           sp: false, gr: 'Granos / espiga',   v: [450, 0.175, 28, 38] },
+  girasol: { pl: 'Plantas / metro lineal', sp: true,  gr: 'Granos / capítulo', v: [3.6, 0.52, 1000, 55] }
+};
+function updateYield() {
+  const c = CROPS[$('y-crop').value];
+  $('y-l-pl').textContent = c.pl;
+  $('y-l-gr').textContent = c.gr;
+  $('y-wrap-sp').classList.toggle('hidden', !c.sp);
+  ['y-plants', 'y-spacing', 'y-grains', 'y-peso'].forEach((id, i) => $(id).value = c.v[i]);
+  calcYield();
+}
+function calcYield() {
+  const c = CROPS[$('y-crop').value];
+  const v = [num('y-plants', 0.1, 2000), c.sp ? num('y-spacing', 0.1, 2) : 1, num('y-grains', 1, 5000), num('y-peso', 1, 1000)];
+  const ids = ['res-yield-qq', 'res-yield-ton'];
+  if (v.includes(null)) return out(ids, null);
+  const [pl, sp, gr, peso] = v;
+  const perM2 = c.sp ? pl / sp : pl;
+  const kgHa = perM2 * gr * (peso / 1000) * 10;
+  out(ids, [fmt(kgHa / 100), fmt(kgHa / 1000, 2)]);
+  lastYieldTn = kgHa / 1000;
+}
+
+// 4. Costos
+function calcCosts() {
+  const v = [num('c-fuel', 0, 1000), num('c-fuelfee', 0, 1e6), num('c-wear', 0, 1e8), num('c-labor', 0, 1e8)];
+  const ids = ['res-cost-total', 'res-cost-fuel'];
+  if (v.includes(null)) return out(ids, null);
+  const fuel = v[0] * v[1];
+  out(ids, [fmt(fuel + v[2] + v[3], 0), fmt(fuel, 0)]);
+}
+
+// ---------- Lotes ----------
+const PROVINCIAS = ['Buenos Aires','Ciudad Autónoma de Buenos Aires','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán'];
+let fields = [];
+
+function saveField(e) {
+  e.preventDefault();
+  const ha = parseFloat($('mf-ha').value);
+  if (!(ha > 0)) return;
+  fields.push({ id: Date.now(), name: $('mf-name').value.trim(), prov: $('mf-prov').value, ha, crop: $('mf-crop').value.trim() });
+  store.set(K('fields'), fields);
+  closeM('modal-field');
+  loadFields();
+}
+function deleteField(id) {
+  if (!confirm('¿Eliminar este lote?')) return;
+  fields = fields.filter(f => f.id !== id);
+  store.set(K('fields'), fields);
+  loadFields();
+}
+function loadFields() {
+  const total = fields.reduce((s, f) => s + (Number(f.ha) || 0), 0);
+  $('fields-grid').innerHTML = fields.length ? fields.map(f => `
+    <div class="item flex flex-col justify-between">
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="chip bg-agro-100 dark:bg-agro-900/50 text-agro-700 dark:text-agro-300">${esc(f.prov)}</span>
+          <button onclick="deleteField(${Number(f.id)})" aria-label="Eliminar lote" class="text-slate-400 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+        </div>
+        <h4 class="font-bold text-lg">${esc(f.name)}</h4>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Cultivo: <strong class="text-slate-700 dark:text-slate-200">${esc(f.crop)}</strong></p>
+      </div>
+      <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <span class="text-xs text-slate-500">Superficie</span><span class="font-extrabold text-agro-600">${esc(fmt(Number(f.ha) || 0, 0))} ha</span>
+      </div>
+    </div>`).join('') : lockOrEmpty('lotes');
+  $('metric-lotes').textContent = fields.length;
+  $('metric-ha').textContent = fmt(total, 0) + ' ha';
+  $('metric-provinces').textContent = new Set(fields.map(f => f.prov)).size;
+  const sel = $('m-lote');
+  if (sel) { const cur = sel.value; sel.innerHTML = '<option value="">— Sin lote —</option>' + fields.map(f => `<option value="${Number(f.id)}">${esc(f.name)} (${esc(f.ha)} ha)</option>`).join(''); sel.value = cur; }
+  icons();
+}
+
+// ---------- Bitácora ----------
+let notes = [];
+function saveNote(e) {
+  e.preventDefault();
+  notes.unshift({ id: Date.now(), title: $('mn-title').value.trim(), cat: $('mn-cat').value, desc: $('mn-desc').value.trim(), date: new Date().toLocaleDateString('es-AR') });
+  store.set(K('notes'), notes);
+  closeM('modal-note');
+  loadNotes();
+}
+function deleteNote(id) {
+  if (!confirm('¿Eliminar esta nota?')) return;
+  notes = notes.filter(n => n.id !== id);
+  store.set(K('notes'), notes);
+  loadNotes();
+}
+function loadNotes() {
+  $('notes-grid').innerHTML = notes.length ? notes.map(n => `
+    <div class="item">
+      <div class="flex items-center justify-between">
+        <span class="chip bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">${esc(n.cat)}</span>
+        <div class="flex items-center space-x-2"><span class="text-xs text-slate-400">${esc(n.date)}</span>
+          <button onclick="deleteNote(${Number(n.id)})" aria-label="Eliminar nota" class="text-slate-400 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>
+      </div>
+      <h4 class="font-bold text-lg">${esc(n.title)}</h4>
+      <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-line">${esc(n.desc)}</p>
+    </div>`).join('') : lockOrEmpty('notas');
+  icons();
+}
+
+// ---------- Cuentas (MODO DEMO: todo queda en este navegador) ----------
+let session = null, authMode = 'register';
+const getUsers = () => store.get('agro_users', []);
+const setUsers = u => store.set('agro_users', u);
+const K = n => 'agro_' + n + '_' + (session ? session.id : 'guest');
+const isAdmin = () => !!session && session.role === 'admin';
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+async function hashPw(pw, salt) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: Uint8Array.from(atob(salt), c => c.charCodeAt(0)), iterations: 150000, hash: 'SHA-256' }, key, 256);
+  return b64(bits);
+}
+function requireAuth(fn) { if (session) fn(); else { setAuthMode('register'); openM('modal-auth'); } }
+function lockOrEmpty(what) {
+  return session ? `<p class="text-sm text-slate-500 col-span-full">Todavía no hay ${what}.</p>`
+    : `<div class="col-span-full text-center py-10 space-y-3"><i data-lucide="lock" class="w-8 h-8 mx-auto text-cyan-400"></i><p class="text-sm text-slate-500 dark:text-slate-400">Cree una cuenta gratis para guardar sus ${what}.</p><button class="btn" onclick="setAuthMode('register');openM('modal-auth')">Crear cuenta</button></div>`;
+}
+function setAuthMode(m) {
+  authMode = m; const r = m === 'register';
+  $('auth-title').textContent = r ? 'Crear cuenta' : 'Ingresar';
+  $('au-submit').textContent = r ? 'Crear cuenta' : 'Ingresar';
+  $('au-switch').textContent = r ? '¿Ya tiene cuenta? Ingresar' : '¿No tiene cuenta? Crear una';
+  $('au-name-w').classList.toggle('hidden', !r);
+  $('au-consent-w').classList.toggle('hidden', !r);
+  $('au-name').required = r;
+  $('au-pass').autocomplete = r ? 'new-password' : 'current-password';
+  $('au-msg').textContent = '';
+}
+async function submitAuth(e) {
+  e.preventDefault();
+  const msg = $('au-msg'); msg.textContent = '';
+  if (!window.crypto || !crypto.subtle) { msg.textContent = 'Este navegador no permite crear cuentas aquí (se requiere HTTPS).'; return; }
+  const email = $('au-email').value.trim().toLowerCase(), pass = $('au-pass').value, users = getUsers();
+  let u;
+  if (authMode === 'register') {
+    const name = $('au-name').value.trim();
+    if (!name || pass.length < 8) { msg.textContent = 'Ingrese su nombre y una contraseña de al menos 8 caracteres.'; return; }
+    if (!$('au-consent').checked) { msg.textContent = 'Debe aceptar el aviso legal para registrarse.'; return; }
+    if (users.some(x => x.email === email)) { msg.textContent = 'Ese email ya está registrado.'; return; }
+    const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
+    u = { id: crypto.randomUUID(), name, email, salt, hash: await hashPw(pass, salt), role: users.length ? 'user' : 'admin', created: new Date().toISOString() };
+    users.push(u); setUsers(users);
+  } else {
+    u = users.find(x => x.email === email);
+    if (!u || u.hash !== await hashPw(pass, u.salt)) { msg.textContent = 'Email o contraseña incorrectos.'; return; }
+  }
+  startSession(u);
+  closeM('modal-auth');
+}
+function startSession(u) {
+  session = { id: u.id, name: u.name, role: u.role };
+  try { localStorage.setItem('agro_session', u.id); } catch (e) {}
+  loadData(); renderAuth();
+}
+function logout() {
+  session = null;
+  try { localStorage.removeItem('agro_session'); } catch (e) {}
+  loadData(); renderAuth(); switchTab('calculators');
+}
+function initAuth() {
+  let id = null; try { id = localStorage.getItem('agro_session'); } catch (e) {}
+  const u = getUsers().find(x => x.id === id);
+  if (u) session = { id: u.id, name: u.name, role: u.role };
+  loadData(); renderAuth();
+}
+function loadData() {
+  fields = session ? store.get(K('fields'), []) : [];
+  notes = session ? store.get(K('notes'), []) : [];
+  loadFields(); loadNotes(); renderCamp();
+}
+function renderAuth() {
+  $('auth-area').innerHTML = session
+    ? `<span class="max-sm:hidden flex items-center text-xs font-semibold px-3 py-2 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30">${esc(session.name)}${isAdmin() ? ' · Admin' : ''}</span><button class="btn2 px-3 py-2" onclick="logout()">Salir</button>`
+    : `<button class="btn2 px-3 py-2" onclick="setAuthMode('login');openM('modal-auth')">Ingresar</button><button class="btn px-3 py-2" onclick="setAuthMode('register');openM('modal-auth')">Crear cuenta</button>`;
+  $('btn-tab-admin').classList.toggle('hidden', !isAdmin());
+}
+
+// ---------- Panel admin (demo) ----------
+function renderAdmin() {
+  const us = getUsers(); let lotes = 0, ha = 0;
+  us.forEach(u => { const f = store.get('agro_fields_' + u.id, []); lotes += f.length; f.forEach(x => ha += Number(x.ha) || 0); });
+  $('adm-users').textContent = us.length;
+  $('adm-admins').textContent = us.filter(u => u.role === 'admin').length;
+  $('adm-lotes').textContent = lotes;
+  $('adm-ha').textContent = fmt(ha, 0) + ' ha';
+  $('adm-body').innerHTML = us.map(u => {
+    const me = session && u.id === session.id, id = esc(u.id);
+    return `<tr class="border-t border-slate-200 dark:border-slate-800"><td class="py-3 pr-4 font-semibold">${esc(u.name)}</td><td class="py-3 pr-4">${esc(u.email)}</td>
+      <td class="py-3 pr-4"><span class="chip ${u.role === 'admin' ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-300' : 'bg-slate-200 dark:bg-slate-800'}">${u.role === 'admin' ? 'Admin' : 'Usuario'}</span></td>
+      <td class="py-3 pr-4 whitespace-nowrap">${esc(new Date(u.created).toLocaleDateString('es-AR'))}</td>
+      <td class="py-3 whitespace-nowrap">${me ? '<span class="text-xs text-slate-400">Usted</span>' : `<button class="underline text-xs mr-3" data-act="role" data-id="${id}">${u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}</button><button class="underline text-xs text-rose-500" data-act="del" data-id="${id}">Eliminar</button>`}</td></tr>`;
+  }).join('');
+}
+$('adm-body').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]');
+  if (!b || !isAdmin()) return;
+  let us = getUsers(); const u = us.find(x => x.id === b.dataset.id);
+  if (!u || u.id === session.id) return;
+  if (b.dataset.act === 'role') u.role = u.role === 'admin' ? 'user' : 'admin';
+  else {
+    if (!confirm('¿Eliminar a ' + u.name + ' y todos sus datos?')) return;
+    us = us.filter(x => x.id !== u.id);
+    try { localStorage.removeItem('agro_fields_' + u.id); localStorage.removeItem('agro_notes_' + u.id); } catch (err) {}
+  }
+  setUsers(us); renderAdmin();
+});
+
+// ---------- Pulverización ----------
+function calcSpray() {
+  const v = [num('p-flow', 1, 1000), num('p-tank', 10, 100000), num('p-dose', 0, 100), num('p-ha', 0.1, 1e6)];
+  const ids = ['res-p-hat', 'res-p-prodt', 'res-p-tanks', 'res-p-prodtot'];
+  if (v.includes(null)) { $('res-p-note').textContent = ''; return out(ids, null); }
+  const [flow, tank, dose, ha] = v;
+  const haT = tank / flow, tanks = ha / haT;
+  out(ids, [fmt(haT), fmt(dose * haT, 2), fmt(tanks), fmt(dose * ha, 1)]);
+  $('res-p-note').textContent = `Caldo total: ${fmt(flow * ha, 0)} L · ${Math.ceil(tanks)} cargas (la última parcial).`;
+}
+
+// ---------- Margen bruto ----------
+let lastYieldTn = null;
+function calcMargin() {
+  const v = [num('m-yield', 0, 100), num('m-price', 0, 1e8), num('m-cost', 0, 1e9), num('m-comm', 0, 100), num('m-rent', 0, 1e9), num('m-ha', 0, 1e6)];
+  const ids = ['res-m-ing', 'res-m-mb', 'res-m-tot', 'res-m-rent'];
+  if (v.includes(null)) return out(ids, null);
+  const [y, pr, c, cm, rt, ha] = v;
+  const ing = y * pr, costs = c + rt + ing * cm / 100, mb = ing - costs;
+  out(ids, [fmt(ing, 0), fmt(mb, 0), fmt(mb * ha, 0), costs > 0 ? fmt(mb / costs * 100, 1) + ' %' : '--']);
+  ['res-m-mb', 'res-m-tot', 'res-m-rent'].forEach(id => $(id).classList.toggle('!text-rose-500', mb < 0));
+}
+function pickLote() { const f = fields.find(x => String(x.id) === $('m-lote').value); if (f) $('m-ha').value = f.ha; calcMargin(); }
+function useYield() { if (lastYieldTn) { $('m-yield').value = +lastYieldTn.toFixed(2); calcMargin(); } }
+
+// ---------- Exportar ----------
+function csvCell(v) { v = String(v); if (/^[=+\-@\t\r]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; }
+function exportCsv() {
+  if (!fields.length) return alert('No hay lotes para exportar.');
+  const rows = [['Lote', 'Provincia', 'Superficie (ha)', 'Cultivo']].concat(fields.map(f => [f.name, f.prov, f.ha, f.crop]));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + rows.map(r => r.map(csvCell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'lotes-agropulse.csv'; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function exportPdf() {
+  const w = window.open('', '_blank');
+  if (!w) return alert('Permita las ventanas emergentes para generar el informe.');
+  const ha = fields.reduce((s, f) => s + (Number(f.ha) || 0), 0);
+  const rows = fields.map(f => `<tr><td>${esc(f.name)}</td><td>${esc(f.prov)}</td><td>${esc(f.crop)}</td><td>${esc(fmt(Number(f.ha) || 0, 0))}</td></tr>`).join('');
+  const nts = notes.map(n => `<h4>${esc(n.title)} <small>— ${esc(n.cat)}, ${esc(n.date)}</small></h4><p>${esc(n.desc)}</p>`).join('');
+  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Informe AgroPulse 360</title><style>body{font-family:system-ui,Arial,sans-serif;margin:32px;color:#111}h1{color:#15803d}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px 8px;font-size:13px;text-align:left}th{background:#f0fdf4}small{color:#666;font-weight:400}footer{margin-top:32px;font-size:11px;color:#666}</style></head><body><h1>AgroPulse 360 — Informe</h1><p>${esc(session.name)} · ${esc(new Date().toLocaleDateString('es-AR'))}</p><h3>Lotes (${fields.length} · ${esc(fmt(ha, 0))} ha)</h3><table><tr><th>Lote</th><th>Provincia</th><th>Cultivo</th><th>Superficie (ha)</th></tr>${rows}</table><h3>Bitácora</h3>${nts || '<p>Sin notas.</p>'}<footer>© 2026 Gonzalo Vanzini. Todos los derechos reservados. Datos orientativos; no reemplazan el asesoramiento profesional.</footer><script>onload=()=>print()<\/script></body></html>`);
+  w.document.close();
+}
+
+// ---------- App instalable (PWA) ----------
+if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+
+// ---------- Más herramientas ----------
+// Cada herramienta: t=título, i=ícono, d=descripción, f=[etiqueta, valor, mín, máx], c=función de cálculo
+const sgn = x => (x > 0 ? '+' : '') + x + '%';
+const TOOLS = [
+  { t: 'Punto de equilibrio', i: 'scale', d: 'Rinde mínimo para no perder plata.',
+    f: [['Costos totales ($/ha)', 450000, 0, 1e9], ['Precio ($/tn)', 300000, 1, 1e8], ['Cosecha y comercialización (%)', 8, 0, 99]],
+    c: v => { const y = v[0] / (v[1] * (1 - v[2] / 100)); return [['Rinde de indiferencia', fmt(y, 2), 'tn/ha'], ['Equivale a', fmt(y * 10, 1), 'qq/ha']]; } },
+  { t: 'Escenarios de precio y rinde', i: 'trending-up', d: 'Cómo cambia el margen si precio o rinde suben o bajan.',
+    f: [['Rinde (tn/ha)', 3.5, 0, 100], ['Precio ($/tn)', 300000, 0, 1e8], ['Costos totales ($/ha)', 450000, 0, 1e9], ['Cosecha y comercialización (%)', 8, 0, 99]],
+    c: v => { const d = [-20, -10, 0, 10, 20];
+      const rows = d.map(dp => `<tr><th class="px-2 py-1">${sgn(dp)}</th>` + d.map(dy => { const m = v[0] * (1 + dy / 100) * v[1] * (1 + dp / 100) * (1 - v[3] / 100) - v[2];
+        return `<td class="px-2 py-1 ${m < 0 ? 'text-rose-500' : 'text-agro-600'}">${Math.round(m / 1000)}k</td>`; }).join('') + '</tr>').join('');
+      return `<p class="text-xs text-slate-500 mb-2">Margen bruto en miles de $/ha. Filas: precio. Columnas: rinde.</p><div class="overflow-x-auto"><table class="text-xs w-full text-center"><tr><th></th>${d.map(x => `<th class="px-2 py-1">${sgn(x)}</th>`).join('')}</tr>${rows}</table></div>`; } },
+  { t: 'Humedad y merma', i: 'droplets', d: 'Peso comercial tras descuento por humedad. No incluye gastos de secada.',
+    f: [['Peso bruto (tn)', 30, 0.1, 1e5], ['Humedad recibida (%)', 16, 0, 40], ['Humedad base de recibo (%)', 14, 5, 25], ['Merma de manipuleo (%)', 0.25, 0, 5]],
+    c: v => { const net = v[0] * Math.min(1, (100 - v[1]) / (100 - v[2])) * (1 - v[3] / 100); return [['Peso comercial', fmt(net, 2), 'tn'], ['Merma total', fmt(v[0] - net, 2), 'tn'], ['Merma', fmt((1 - net / v[0]) * 100, 2), '%']]; } },
+  { t: 'Pérdidas de cosecha', i: 'wheat', d: 'Granos en el suelo convertidos a kg/ha perdidos.',
+    f: [['Granos en el suelo (por m²)', 20, 0, 10000], ['Peso de 1.000 granos (g)', 160, 1, 1000], ['Rinde esperado (tn/ha)', 3.5, 0.1, 100]],
+    c: v => { const kg = v[0] * v[1] / 100; return [['Pérdida', fmt(kg, 1), 'kg/ha'], ['Sobre el rinde', fmt(kg / (v[2] * 1000) * 100, 2), '%']]; } },
+  { t: 'Calibración de pulverizadora', i: 'gauge', d: 'Caudal real (L/ha) a partir de picos y velocidad.',
+    f: [['Caudal por pico (L/min)', 1.2, 0.01, 20], ['Velocidad (km/h)', 18, 1, 60], ['Distancia entre picos (m)', 0.5, 0.1, 2]],
+    c: v => [['Caudal aplicado', fmt(600 * v[0] / (v[1] * v[2]), 1), 'L/ha']] },
+  { t: 'Costo de flete', i: 'truck', d: 'Tarifa de ejemplo: actualícela con la que le cotizan.',
+    f: [['Distancia (km)', 300, 1, 5000], ['Tarifa ($/tn·km)', 150, 0, 1e6], ['Toneladas a transportar', 100, 0.1, 1e6], ['Carga por camión (tn)', 30, 1, 60]],
+    c: v => [['Costo por tn', fmt(v[0] * v[1], 0), '$/tn'], ['Costo total', fmt(v[0] * v[1] * v[2], 0), '$'], ['Camiones', Math.ceil(v[2] / v[3]), '']] }
+];
+function renderTools() {
+  $('tools-grid').innerHTML = TOOLS.map((T, n) => `<div class="card"><div class="flex items-center space-x-3 mb-5"><div class="ico"><i data-lucide="${T.i}" class="w-6 h-6"></i></div><div><h3 class="font-bold text-lg">${T.t}</h3><p class="text-xs text-slate-500 dark:text-slate-400">${T.d}</p></div></div>
+    <div class="row2">${T.f.map((f, k) => `<label class="lbl">${f[0]}<input class="inp" type="number" step="any" id="t${n}-${k}" value="${f[1]}" min="${f[2]}" max="${f[3]}" oninput="calcTool(${n})"></label>`).join('')}</div>
+    <div id="tr${n}" class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800"></div></div>`).join('');
+  TOOLS.forEach((_, n) => calcTool(n)); icons();
+}
+function calcTool(n) {
+  const T = TOOLS[n], box = $('tr' + n), v = T.f.map((f, k) => num(`t${n}-${k}`, f[2], f[3]));
+  if (v.includes(null)) { box.innerHTML = '<p class="text-xs text-rose-500">Revise los valores marcados en rojo.</p>'; return; }
+  const r = T.c(v);
+  box.innerHTML = (typeof r === 'string' ? r : '<div class="grid grid-cols-2 gap-4">' + r.map(x => `<div class="res"><span class="rl">${x[0]}</span><span class="rv">${x[1]}</span> <span class="ru">${x[2] || ''}</span></div>`).join('') + '</div>')
+    + `<button class="underline text-xs mt-3" onclick="shareTool(${n})">Compartir por WhatsApp</button>`;
+}
+function shareWA(t) { window.open('https://wa.me/?text=' + encodeURIComponent(t + '\n— AgroPulse 360'), '_blank', 'noopener'); }
+function shareTool(n) {
+  const T = TOOLS[n], v = T.f.map((f, k) => parseFloat($(`t${n}-${k}`).value)), r = T.c(v);
+  shareWA(T.t + '\n' + T.f.map((f, k) => f[0] + ': ' + v[k]).join('\n') + (typeof r === 'string' ? '' : '\n→ ' + r.map(x => x[0] + ': ' + x[1] + ' ' + (x[2] || '')).join('\n→ ')));
+}
+function shareLotes() {
+  if (!fields.length) return alert('No hay lotes para compartir.');
+  const ha = fields.reduce((s, f) => s + (Number(f.ha) || 0), 0);
+  shareWA(`Mis lotes (${fields.length} · ${fmt(ha, 0)} ha)\n` + fields.slice(0, 15).map(f => `- ${f.name} (${f.prov}, ${f.crop}, ${f.ha} ha)`).join('\n'));
+}
+
+// ---------- Campaña: gráficos, lluvias, historial e inventario ----------
+const bars = m => { const e = Object.entries(m).sort((a, b) => b[1] - a[1]), mx = e.length ? e[0][1] : 1;
+  return e.map(([k, v]) => `<div class="text-xs mb-3"><div class="flex justify-between mb-1"><span>${esc(k)}</span><span>${esc(fmt(v, 0))} ha</span></div><div class="h-2 rounded bg-slate-200 dark:bg-slate-800"><div class="h-2 rounded bg-gradient-to-r from-cyan-400 to-agro-500" style="width:${(v / mx * 100).toFixed(1)}%"></div></div></div>`).join('') || '<p class="text-xs text-slate-500">Sin datos.</p>'; };
+const today = () => new Date().toISOString().slice(0, 10);
+const LISTS = {
+  rain: { t: 'Registro de lluvias', i: 'cloud-rain', f: [['lote', 'Lote', 'l'], ['mm', 'Lluvia (mm)', 'n', 0, 1000], ['fecha', 'Fecha', 'd']],
+    row: r => `${esc(r.fecha)} · ${esc(r.lote)} · <strong>${esc(r.mm)} mm</strong>`,
+    sum: a => { const m = today().slice(0, 7), sm = x => a.filter(r => x(r)).reduce((s, r) => s + (Number(r.mm) || 0), 0); return `Mes actual: ${fmt(sm(r => String(r.fecha).startsWith(m)), 0)} mm · Total registrado: ${fmt(sm(() => true), 0)} mm`; } },
+  hist: { t: 'Historial de campañas', i: 'history', f: [['lote', 'Lote', 'l'], ['camp', 'Campaña (ej. 2025/26)', 't'], ['cultivo', 'Cultivo', 't'], ['rinde', 'Rinde (tn/ha)', 'n', 0, 100]],
+    row: r => `${esc(r.camp)} · ${esc(r.lote)} · ${esc(r.cultivo)} · <strong>${esc(r.rinde)} tn/ha</strong>`, sum: a => `${a.length} registro(s)` },
+  inv: { t: 'Inventario de insumos', i: 'package', f: [['item', 'Insumo', 't'], ['cant', 'Cantidad', 'n', 0, 1e9], ['unidad', 'Unidad (kg, L...)', 't'], ['min', 'Stock mínimo', 'n', 0, 1e9]],
+    row: r => { const low = Number(r.cant) <= Number(r.min); return `<span class="${low ? 'text-rose-500 font-semibold' : ''}">${esc(r.item)} · ${esc(r.cant)} ${esc(r.unidad)}${low ? ' · ¡stock bajo!' : ''}</span>`; },
+    sum: a => `${a.filter(r => Number(r.cant) <= Number(r.min)).length} insumo(s) con stock bajo` }
+};
+function renderLists() {
+  $('camp-lists').innerHTML = Object.keys(LISTS).map(k => {
+    const L = LISTS[k], a = store.get(K(k), []);
+    const form = L.f.map(f => { const id = `l-${k}-${f[0]}`;
+      if (f[2] === 'l') return `<label class="lbl">${f[1]}<select class="inp" id="${id}">${fields.map(x => `<option>${esc(x.name)}</option>`).join('') || '<option value="">(sin lotes)</option>'}</select></label>`;
+      const attr = f[2] === 'n' ? `type="number" step="any" min="${f[3]}" max="${f[4]}"` : f[2] === 'd' ? `type="date" value="${today()}"` : 'type="text" maxlength="60"';
+      return `<label class="lbl">${f[1]}<input class="inp" id="${id}" ${attr}></label>`; }).join('');
+    return `<div class="card"><div class="flex items-center space-x-3 mb-5"><div class="ico"><i data-lucide="${L.i}" class="w-6 h-6"></i></div><h3 class="font-bold text-lg">${L.t}</h3></div>
+      <div class="row2">${form}</div><button class="btn mt-4" onclick="addItem('${k}')">Agregar</button>
+      <p class="text-xs text-slate-500 mt-4">${L.sum(a)}</p>
+      <ul class="mt-2 space-y-2 text-sm">${a.slice(0, 30).map(r => `<li class="flex justify-between items-center border-t border-slate-100 dark:border-slate-800 pt-2"><span>${L.row(r)}</span><button aria-label="Eliminar" class="text-slate-400 hover:text-rose-500" onclick="delItem('${k}',${Number(r.id)})"><i data-lucide="trash-2" class="w-4 h-4"></i></button></li>`).join('')}</ul></div>`;
+  }).join('');
+}
+function addItem(k) {
+  const it = { id: Date.now() };
+  for (const f of LISTS[k].f) {
+    const el = $(`l-${k}-${f[0]}`), v = el.value.trim();
+    if (f[2] === 'n') { const x = parseFloat(v); if (!Number.isFinite(x) || x < f[3] || x > f[4]) { el.classList.add('border-rose-500'); return; } it[f[0]] = x; }
+    else { if (!v) { el.classList.add('border-rose-500'); return; } it[f[0]] = v; }
+  }
+  const a = store.get(K(k), []); a.unshift(it); store.set(K(k), a); renderCamp();
+}
+function delItem(k, id) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  store.set(K(k), store.get(K(k), []).filter(r => r.id !== id)); renderCamp();
+}
+function renderCamp() {
+  if (!session) { $('camp-charts').innerHTML = ''; $('camp-lists').innerHTML = lockOrEmpty('datos de campaña'); icons(); return; }
+  const by = k => fields.reduce((m, f) => { const key = String(f[k]).trim() || '—'; m[key] = (m[key] || 0) + (Number(f.ha) || 0); return m; }, {});
+  $('camp-charts').innerHTML = `<div class="card"><h3 class="font-bold text-lg mb-4">Superficie por cultivo</h3>${bars(by('crop'))}</div><div class="card"><h3 class="font-bold text-lg mb-4">Superficie por provincia</h3>${bars(by('prov'))}</div>`;
+  renderLists(); icons();
+}
+
+// ---------- Inicio ----------
+document.addEventListener('DOMContentLoaded', () => {
+  $('mf-prov').innerHTML = PROVINCIAS.map(p => `<option>${esc(p)}</option>`).join('');
+  initAuth();
+  calcSowing(); calcFert(); calcYield(); calcCosts(); calcSpray(); calcMargin(); renderTools();
+  icons();
+});
+</script>
+</body>
+</html>
